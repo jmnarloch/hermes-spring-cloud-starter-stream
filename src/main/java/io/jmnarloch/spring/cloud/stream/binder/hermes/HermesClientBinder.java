@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,6 +18,10 @@ package io.jmnarloch.spring.cloud.stream.binder.hermes;
 import org.springframework.cloud.stream.binder.AbstractBinder;
 import org.springframework.cloud.stream.binder.Binding;
 import org.springframework.cloud.stream.binder.DefaultBinding;
+import org.springframework.cloud.stream.binder.ExtendedConsumerProperties;
+import org.springframework.cloud.stream.binder.ExtendedProducerProperties;
+import org.springframework.cloud.stream.binder.ExtendedPropertiesBinder;
+import org.springframework.cloud.stream.binder.MessageValues;
 import org.springframework.integration.endpoint.EventDrivenConsumer;
 import org.springframework.integration.handler.AbstractMessageHandler;
 import org.springframework.messaging.Message;
@@ -27,17 +31,24 @@ import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.SubscribableChannel;
 import org.springframework.util.Assert;
 import pl.allegro.tech.hermes.client.HermesClient;
+import pl.allegro.tech.hermes.client.HermesResponse;
+
+import java.nio.charset.StandardCharsets;
 
 /**
  * Hermes client binder.
  *
  * @author Jakub Narloch
  */
-public class HermesClientBinder extends AbstractBinder<MessageChannel, HermesConsumerProperties, HermesProducerProperties> {
+public class HermesClientBinder
+        extends AbstractBinder<MessageChannel, ExtendedConsumerProperties<HermesConsumerProperties>, ExtendedProducerProperties<HermesProducerProperties>>
+        implements ExtendedPropertiesBinder<MessageChannel, HermesConsumerProperties, HermesProducerProperties> {
 
     private static final String BEAN_NAME_TEMPLATE = "outbound.%s";
 
     private final HermesClient hermesClient;
+
+    private HermesExtendedBindingProperties hermesExtendedBindingProperties = new HermesExtendedBindingProperties();
 
     public HermesClientBinder(HermesClient hermesClient) {
         Assert.notNull(hermesClient, "Parameter 'hermesClient' can not be null.");
@@ -45,14 +56,13 @@ public class HermesClientBinder extends AbstractBinder<MessageChannel, HermesCon
     }
 
     @Override
-    protected Binding<MessageChannel> doBindConsumer(String name, String group, MessageChannel inputTarget, HermesConsumerProperties properties) {
+    protected Binding<MessageChannel> doBindConsumer(String name, String group, MessageChannel inputTarget, ExtendedConsumerProperties<HermesConsumerProperties> properties) {
         // or unsupported operation exception
         return null;
     }
 
     @Override
-    protected Binding<MessageChannel> doBindProducer(String name, MessageChannel channel, HermesProducerProperties properties) {
-
+    protected Binding<MessageChannel> doBindProducer(String name, MessageChannel channel, ExtendedProducerProperties<HermesProducerProperties> properties) {
         Assert.isInstanceOf(SubscribableChannel.class, channel);
 
         logger.debug("Binding Hermes client to topic " + name);
@@ -62,9 +72,23 @@ public class HermesClientBinder extends AbstractBinder<MessageChannel, HermesCon
         return toBinding(name, channel, consumer);
     }
 
+    public void setHermesExtendedBindingProperties(HermesExtendedBindingProperties hermesExtendedBindingProperties) {
+        this.hermesExtendedBindingProperties = hermesExtendedBindingProperties;
+    }
+
+    @Override
+    public HermesConsumerProperties getExtendedConsumerProperties(String channelName) {
+        return hermesExtendedBindingProperties.getExtendedConsumerProperties(channelName);
+    }
+
+    @Override
+    public HermesProducerProperties getExtendedProducerProperties(String channelName) {
+        return hermesExtendedBindingProperties.getExtendedProducerProperties(channelName);
+    }
+
     private EventDrivenConsumer createConsumer(String name, SubscribableChannel channel, MessageHandler handler) {
         EventDrivenConsumer consumer = new EventDrivenConsumer(channel, handler);
-        consumer.setBeanFactory(this.getBeanFactory());
+        consumer.setBeanFactory(getBeanFactory());
         consumer.setBeanName(String.format(BEAN_NAME_TEMPLATE, name));
         consumer.afterPropertiesSet();
         return consumer;
@@ -85,29 +109,19 @@ public class HermesClientBinder extends AbstractBinder<MessageChannel, HermesCon
 
         @Override
         protected void handleMessageInternal(Message<?> message) throws Exception {
-            if (!isValid(message)) {
-                return;
-            }
-            publish(message);
+            final MessageValues messageToSend = serializePayloadIfNecessary(message);
+            publish(messageToSend.toMessage(getMessageBuilderFactory()));
         }
 
         private void publish(Message<?> message) {
-            hermesClient.publish(
-                    topic,
-                    getContentType(message),
-                    getPayloadAsBytes(message)
-            );
-        }
-
-        private boolean isValid(Message<?> message) {
-            if (getContentType(message) == null) {
-                logger.warn("The message content type hasn't been set");
-                return false;
-            } else if (!(message.getPayload() instanceof byte[])) {
-                logger.warn("The message payload must be a byte array");
-                return false;
-            }
-            return true;
+            hermesClient.publish(topic, getContentType(message), getPayloadAsBytes(message))
+                    .whenComplete((resp, exc) -> {
+                        if (resp.isSuccess()) {
+                            logger.debug("Message published successfully to Hermes");
+                        } else {
+                            logError(resp);
+                        }
+                    });
         }
 
         private String getContentType(Message<?> message) {
@@ -119,11 +133,20 @@ public class HermesClientBinder extends AbstractBinder<MessageChannel, HermesCon
         }
 
         private byte[] getPayloadAsBytes(Message<?> message) {
-            if (message.getPayload() instanceof byte[]) {
+            if (message.getPayload() instanceof String) {
+                return ((String) message.getPayload()).getBytes(StandardCharsets.UTF_8);
+            } else if (message.getPayload() instanceof byte[]) {
                 return (byte[]) message.getPayload();
             }
-            logger.warn("The message payload must be ");
             return null;
+        }
+
+        private void logError(HermesResponse resp) {
+            if (resp.getFailureCause().isPresent()) {
+                logger.error("Failed to publish message to Hermes endpoint", resp.getFailureCause().get());
+            } else {
+                logger.error("Unknown error has occurred when publish message to Hermes endpoint");
+            }
         }
     }
 }

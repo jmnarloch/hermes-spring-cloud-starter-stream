@@ -16,11 +16,14 @@
 package io.jmnarloch.spring.cloud.stream.binder.hermes.config;
 
 import io.jmnarloch.spring.cloud.stream.binder.hermes.HermesClientBinder;
+import io.jmnarloch.spring.cloud.stream.binder.hermes.HermesExtendedBindingProperties;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.PropertyPlaceholderAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.web.client.AsyncRestTemplate;
 import pl.allegro.tech.hermes.client.HermesClient;
 import pl.allegro.tech.hermes.client.HermesClientBuilder;
@@ -36,16 +39,22 @@ import javax.xml.bind.Binder;
  */
 @Configuration
 @ConditionalOnMissingBean(Binder.class)
-@EnableConfigurationProperties(HermesBinderProperties.class)
+@Import({ PropertyPlaceholderAutoConfiguration.class })
+@EnableConfigurationProperties({HermesBinderProperties.class, HermesExtendedBindingProperties.class})
 public class HermesBinderConfiguration {
 
     @Autowired
     private HermesBinderProperties hermesBinderProperties;
 
+    @Autowired
+    private HermesExtendedBindingProperties hermesExtendedBindingProperties;
+
     @Bean
     @ConditionalOnMissingBean
     public HermesClientBinder hermesClientBinder(HermesClient hermesClient) {
-        return new HermesClientBinder(hermesClient);
+        HermesClientBinder hermesClientBinder = new HermesClientBinder(hermesClient);
+        hermesClientBinder.setHermesExtendedBindingProperties(hermesExtendedBindingProperties);
+        return hermesClientBinder;
     }
 
     @Bean

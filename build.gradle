@@ -24,6 +24,7 @@ apply plugin: 'pmd'
 apply plugin: 'com.github.kt3k.coveralls'
 
 sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 group = "io.jmnarloch"
 archivesBaseName="hermes-spring-cloud-starter-stream"
@@ -33,7 +34,7 @@ ext {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.13'
+    gradleVersion = '2.14'
 }
 
 jar {
@@ -63,6 +64,10 @@ dependencies {
     testCompile (libraries.springBootTest)
     testCompile (libraries.junit)
     testCompile (libraries.mockito)
+    testCompile (libraries.wiremock) {
+        exclude group: 'com.jayway.jsonpath', module: 'json-path'
+    }
+    testCompile (libraries.awaitility)
 }
 
 findbugs {

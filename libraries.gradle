@@ -11,6 +11,8 @@ ext {
             springBootTest                  : 'org.springframework.boot:spring-boot-starter-test:1.2.5.RELEASE',
 
             junit                           : 'junit:junit:4.12',
-            mockito                         : 'org.mockito:mockito-all:1.10.19'
+            mockito                         : 'org.mockito:mockito-all:1.10.19',
+            wiremock                        : 'com.github.tomakehurst:wiremock:1.58',
+            awaitility                      : 'org.awaitility:awaitility:2.0.0'
     ]
 }
