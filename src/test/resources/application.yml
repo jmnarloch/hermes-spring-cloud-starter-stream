@@ -1,0 +1,9 @@
+spring:
+  cloud:
+    stream:
+      binders:
+        purchases:
+          type: hermes
+      hermes:
+        binder:
+          uri: 'http://localhost:8765'

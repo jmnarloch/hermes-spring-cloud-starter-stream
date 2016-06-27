@@ -1,0 +1,2 @@
+hermes:\
+io.jmnarloch.spring.cloud.stream.binder.hermes.config.HermesBinderConfiguration
