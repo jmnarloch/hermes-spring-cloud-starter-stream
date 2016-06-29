@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,17 +35,19 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
-import java.util.concurrent.TimeUnit;
+import java.util.UUID;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.awaitility.Awaitility.await;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.awaitility.Awaitility.given;
 import static org.junit.Assert.assertNotNull;
 import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD;
 
@@ -83,6 +85,30 @@ public class Demo {
     }
 
     @Test
+    public void shouldPublishPojoHermesMessage() {
+
+        // given
+        final UUID id = UUID.randomUUID();
+
+        // and
+        final Message<Purchase> message = MessageBuilder
+                .withPayload(new Purchase(id))
+                .build();
+
+        // when
+        events.purchases().send(message);
+
+        // then
+        given().ignoreExceptions().await().atMost(5, SECONDS).until(
+                () -> wireMock.verify(
+                        1,
+                        postRequestedFor(urlPathMatching("/topics/pl.allegro.payment.purchases"))
+                                .withRequestBody(equalToJson(String.format("{\"id\": \"%s\"}", id.toString())))
+                )
+        );
+    }
+
+    @Test
     public void shouldPublishTextHermesMessage() {
 
         // given
@@ -94,8 +120,9 @@ public class Demo {
         events.purchases().send(message);
 
         // then
-        await().atMost(2, TimeUnit.SECONDS);
-        verify(1, postRequestedFor(urlPathMatching(PURCHASES_TOPIC_PATH)));
+        given().ignoreExceptions().await().atMost(5, SECONDS).until(
+                () -> wireMock.verify(1, postRequestedFor(urlEqualTo(PURCHASES_TOPIC_PATH)))
+        );
     }
 
     @Test
@@ -110,14 +137,28 @@ public class Demo {
         events.purchases().send(message);
 
         // then
-        await().atMost(2, TimeUnit.SECONDS);
-        verify(1, postRequestedFor(urlEqualTo(PURCHASES_TOPIC_PATH)));
+        given().ignoreExceptions().await().atMost(5, SECONDS).until(
+                () -> wireMock.verify(1, postRequestedFor(urlEqualTo(PURCHASES_TOPIC_PATH)))
+        );
     }
 
     interface Events {
 
         @Output
         MessageChannel purchases();
+    }
+
+    public static class Purchase {
+
+        private final UUID id;
+
+        public Purchase(UUID id) {
+            this.id = id;
+        }
+
+        public UUID getId() {
+            return id;
+        }
     }
 
     @Configuration
