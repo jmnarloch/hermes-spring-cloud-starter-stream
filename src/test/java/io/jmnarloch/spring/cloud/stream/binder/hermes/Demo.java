@@ -94,7 +94,7 @@ public class Demo {
         events.purchases().send(message);
 
         // then
-        await().atMost(1, TimeUnit.SECONDS);
+        await().atMost(2, TimeUnit.SECONDS);
         verify(1, postRequestedFor(urlPathMatching("/topics/purchases")));
     }
 
@@ -110,7 +110,7 @@ public class Demo {
         events.purchases().send(message);
 
         // then
-        await().atMost(1, TimeUnit.SECONDS);
+        await().atMost(2, TimeUnit.SECONDS);
         verify(1, postRequestedFor(urlEqualTo("/topics/purchases")));
     }
 
