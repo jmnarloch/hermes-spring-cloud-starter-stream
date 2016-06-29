@@ -58,7 +58,7 @@ as mentioned previously.
 
 ### Binder properties
 
-spring.cloud.stream.hermes.binder.uri - specifies the Hermes consumer URI
+`spring.cloud.stream.hermes.binder.uri` - specifies the Hermes producer URI
 
 ## License
 
