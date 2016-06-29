@@ -15,13 +15,12 @@
  */
 package io.jmnarloch.spring.cloud.stream.binder.hermes;
 
-import static org.junit.Assert.*;
-
 /**
- * Tests the {@link HermesClientBinder}
+ * Tests the {@link HermesClientBinder} class.
  *
  * @author Jakub Narloch
  */
 public class HermesClientBinderTest {
+
 
 }

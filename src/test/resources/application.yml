@@ -1,9 +1,10 @@
 spring:
   cloud:
     stream:
-      binders:
+      bindings:
         purchases:
-          type: hermes
+          destination: 'pl.allegro.payment.purchases'
+          contentType: 'application/json'
       hermes:
         binder:
           uri: 'http://localhost:8765'

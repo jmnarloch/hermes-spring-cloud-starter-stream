@@ -22,7 +22,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * Hermes extended bindings properties.
  *
+ * @author Jakub Narloch
  */
 @ConfigurationProperties("spring.cloud.stream.hermes")
 public class HermesExtendedBindingProperties implements ExtendedBindingProperties<HermesConsumerProperties, HermesProducerProperties> {
@@ -39,21 +41,11 @@ public class HermesExtendedBindingProperties implements ExtendedBindingPropertie
     
     @Override
     public HermesConsumerProperties getExtendedConsumerProperties(String channelName) {
-        if (bindings.containsKey(channelName) && bindings.get(channelName).getConsumer() != null) {
-            return bindings.get(channelName).getConsumer();
-        }
-        else {
-            return new HermesConsumerProperties();
-        }
+        return bindings.getOrDefault(channelName, new HermesBindingProperties()).getConsumer();
     }
 
     @Override
     public HermesProducerProperties getExtendedProducerProperties(String channelName) {
-        if (bindings.containsKey(channelName) && bindings.get(channelName).getProducer() != null) {
-            return bindings.get(channelName).getProducer();
-        }
-        else {
-            return new HermesProducerProperties();
-        }
+        return bindings.getOrDefault(channelName, new HermesBindingProperties()).getProducer();
     }
 }

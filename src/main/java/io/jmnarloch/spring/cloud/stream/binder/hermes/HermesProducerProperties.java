@@ -23,5 +23,4 @@ import org.springframework.cloud.stream.binder.ProducerProperties;
  * @author Jakub Narloch
  */
 public class HermesProducerProperties extends ProducerProperties {
-
 }

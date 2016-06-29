@@ -39,7 +39,6 @@ import javax.xml.bind.Binder;
  */
 @Configuration
 @ConditionalOnMissingBean(Binder.class)
-@Import({ PropertyPlaceholderAutoConfiguration.class })
 @EnableConfigurationProperties({HermesBinderProperties.class, HermesExtendedBindingProperties.class})
 public class HermesBinderConfiguration {
 

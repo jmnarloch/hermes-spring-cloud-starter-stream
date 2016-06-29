@@ -25,21 +25,20 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.annotation.Output;
-import org.springframework.cloud.stream.messaging.Source;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
-import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
@@ -48,8 +47,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertNotNull;
-import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
-import static org.springframework.messaging.MessageHeaders.CONTENT_TYPE;
 import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD;
 
 /**
@@ -63,6 +60,8 @@ import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER
 @DirtiesContext(classMode = AFTER_EACH_TEST_METHOD)
 public class Demo {
 
+    private static final String PURCHASES_TOPIC_PATH = "/topics/pl.allegro.payment.purchases";
+
     @Autowired
     private Events events;
 
@@ -72,7 +71,8 @@ public class Demo {
     @Before
     public void setUp() throws Exception {
 
-        wireMock.stubFor(post(urlPathMatching("/topics/purchases"))
+        wireMock.stubFor(post(urlPathMatching(PURCHASES_TOPIC_PATH))
+                .withHeader(HttpHeaders.CONTENT_TYPE, equalTo(MediaType.APPLICATION_JSON_VALUE))
                 .willReturn(aResponse().withStatus(201)));
     }
 
@@ -86,8 +86,8 @@ public class Demo {
     public void shouldPublishTextHermesMessage() {
 
         // given
-        final Message<String> message = MessageBuilder.withPayload("Hello Hermes!")
-                .setHeaderIfAbsent(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+        final Message<String> message = MessageBuilder
+                .withPayload("Hello Hermes!")
                 .build();
 
         // when
@@ -95,15 +95,15 @@ public class Demo {
 
         // then
         await().atMost(2, TimeUnit.SECONDS);
-        verify(1, postRequestedFor(urlPathMatching("/topics/purchases")));
+        verify(1, postRequestedFor(urlPathMatching(PURCHASES_TOPIC_PATH)));
     }
 
     @Test
     public void shouldPublishByteHermesMessage() {
 
         // given
-        final Message<byte[]> message = MessageBuilder.withPayload("Hello Hermes!".getBytes(UTF_8))
-                .setHeaderIfAbsent(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+        final Message<byte[]> message = MessageBuilder
+                .withPayload("Hello Hermes!".getBytes(UTF_8))
                 .build();
 
         // when
@@ -111,7 +111,7 @@ public class Demo {
 
         // then
         await().atMost(2, TimeUnit.SECONDS);
-        verify(1, postRequestedFor(urlEqualTo("/topics/purchases")));
+        verify(1, postRequestedFor(urlEqualTo(PURCHASES_TOPIC_PATH)));
     }
 
     interface Events {
