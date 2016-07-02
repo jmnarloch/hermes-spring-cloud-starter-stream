@@ -28,8 +28,8 @@ producer `MessageChannel` is being supported.
 
 Creating the bindings for the Spring Cloud Stream is straight forward and
 
-You can always bind to the generic `Source` using `@EnableBinding` and afterwards specify the final destination
-using the properties like so:
+You can always bind to the generic `Source.class` using `@EnableBinding` and afterwards specify the final destination
+through the properties:
 
 ```
 spring:
@@ -40,9 +40,9 @@ spring:
           destination: 'io.jmnarloch.events.purchases'
 ```
 
-In this way you specify the fully qualified name of the Hermes topic.
+This way you specify the fully qualified name of the Hermes topic.
 
-Alternative approach is to define the your own channel binding, example:
+Alternative approach is to design the your own binding, example:
 
 ```
 interface Events {
@@ -53,8 +53,8 @@ interface Events {
 ```
 
 In this case the topic name will be establish based on the method name, if you want to use specific topic name you can
-do this by specific the value of the `@Output`. Finally you can specify the destination property in your configuration
-as mentioned previously.
+do this by specific the value of the `@Output` annotation. Alternatively you can use the binding properties as showed
+above.
 
 ### Binder properties
 
