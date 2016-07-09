@@ -33,8 +33,6 @@ import org.springframework.util.Assert;
 import pl.allegro.tech.hermes.client.HermesClient;
 import pl.allegro.tech.hermes.client.HermesResponse;
 
-import java.nio.charset.StandardCharsets;
-
 /**
  * Hermes client binder.
  *
