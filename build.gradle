@@ -60,6 +60,7 @@ dependencies {
         ext.optional = true
     }
 
+    testCompile (libraries.springCloudStreamBinderTest)
     testCompile (libraries.springBootWeb)
     testCompile (libraries.springBootTest)
     testCompile (libraries.junit)

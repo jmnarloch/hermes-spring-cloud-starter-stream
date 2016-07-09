@@ -57,8 +57,8 @@ public class HermesClientBinder
 
     @Override
     protected Binding<MessageChannel> doBindConsumer(String name, String group, MessageChannel inputTarget, ExtendedConsumerProperties<HermesConsumerProperties> properties) {
-        // or unsupported operation exception
-        return null;
+        // unsupported operation
+        throw new UnsupportedOperationException("Binding Hermes as a consumer is not supported");
     }
 
     @Override
@@ -133,9 +133,7 @@ public class HermesClientBinder
         }
 
         private byte[] getPayloadAsBytes(Message<?> message) {
-            if (message.getPayload() instanceof String) {
-                return ((String) message.getPayload()).getBytes(StandardCharsets.UTF_8);
-            } else if (message.getPayload() instanceof byte[]) {
+            if (message.getPayload() instanceof byte[]) {
                 return (byte[]) message.getPayload();
             }
             return null;

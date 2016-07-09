@@ -5,6 +5,7 @@ ext {
             springBootConfigurationProcessor: 'org.springframework.boot:spring-boot-configuration-processor:1.3.5.RELEASE',
 
             springCloudStream               : 'org.springframework.cloud:spring-cloud-stream:1.0.2.RELEASE',
+            springCloudStreamBinderTest     : 'org.springframework.cloud:spring-cloud-stream-binder-test:1.0.2.RELEASE',
             hermesClient                    : 'pl.allegro.tech.hermes:hermes-client:0.8.8',
 
             springBootWeb                   : 'org.springframework.boot:spring-boot-starter-web:1.2.5.RELEASE',
