@@ -21,7 +21,7 @@ Add the Spring Cloud starter to your project:
 
 This project adds a binder for [Allegro Hermes](https://github.com/allegro/hermes) to [Spring Cloud Stream](https://github.com/spring-cloud/spring-cloud-stream).
 
-By the way the Hermes has been designed there is simple way to create a consumer so at this point only binding a
+By the way the Hermes has been designed there is no simple way to create a consumer so at this point only binding a
 producer `MessageChannel` is being supported.
 
 ### Creating the binding
