@@ -26,7 +26,8 @@ producer `MessageChannel` is being supported.
 
 ### Creating the binding
 
-Creating the bindings for the Spring Cloud Stream is straight forward and
+Creating the bindings for the Spring Cloud Stream is straightforward process and has been described in
+Spring Cloud Stream [reference guide](http://docs.spring.io/spring-cloud-stream/docs/current/reference/htmlsingle/)
 
 You can always bind to the generic `Source.class` using `@EnableBinding` and afterwards specify the final destination
 through the properties:
