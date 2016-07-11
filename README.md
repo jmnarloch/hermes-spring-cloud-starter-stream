@@ -13,7 +13,7 @@ Add the Spring Cloud starter to your project:
 <dependency>
   <groupId>io.jmnarloch</groupId>
   <artifactId>hermes-spring-cloud-starter-stream</artifactId>
-  <version>0.1.0</version>
+  <version>0.2.0</version>
 </dependency>
 ```
 
