@@ -18,8 +18,10 @@ package io.jmnarloch.spring.cloud.stream.binder.hermes.config;
 import io.jmnarloch.spring.cloud.stream.binder.hermes.HermesClientBinder;
 import io.jmnarloch.spring.cloud.stream.binder.hermes.HermesExtendedBindingProperties;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cloud.stream.config.ChannelBindingServiceConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.AsyncRestTemplate;
@@ -38,6 +40,7 @@ import javax.xml.bind.Binder;
 @Configuration
 @ConditionalOnMissingBean(Binder.class)
 @EnableConfigurationProperties({HermesBinderProperties.class, HermesExtendedBindingProperties.class})
+@AutoConfigureBefore({ChannelBindingServiceConfiguration.class})
 public class HermesBinderConfiguration {
 
     @Autowired

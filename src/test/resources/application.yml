@@ -5,6 +5,8 @@ spring:
         purchases:
           destination: 'pl.allegro.payment.purchases'
           contentType: 'application/json'
+        returns:
+          destination: 'pl.allegro.payment.returns'
       hermes:
         binder:
           uri: 'http://localhost:8765'

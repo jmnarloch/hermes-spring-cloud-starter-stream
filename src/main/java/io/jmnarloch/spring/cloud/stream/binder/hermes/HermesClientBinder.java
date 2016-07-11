@@ -21,7 +21,7 @@ import org.springframework.cloud.stream.binder.DefaultBinding;
 import org.springframework.cloud.stream.binder.ExtendedConsumerProperties;
 import org.springframework.cloud.stream.binder.ExtendedProducerProperties;
 import org.springframework.cloud.stream.binder.ExtendedPropertiesBinder;
-import org.springframework.cloud.stream.binder.MessageValues;
+import org.springframework.http.MediaType;
 import org.springframework.integration.endpoint.EventDrivenConsumer;
 import org.springframework.integration.handler.AbstractMessageHandler;
 import org.springframework.messaging.Message;
@@ -31,7 +31,13 @@ import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.SubscribableChannel;
 import org.springframework.util.Assert;
 import pl.allegro.tech.hermes.client.HermesClient;
+import pl.allegro.tech.hermes.client.HermesMessage;
 import pl.allegro.tech.hermes.client.HermesResponse;
+
+import java.util.Optional;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 /**
  * Hermes client binder.
@@ -43,6 +49,10 @@ public class HermesClientBinder
         implements ExtendedPropertiesBinder<MessageChannel, HermesConsumerProperties, HermesProducerProperties> {
 
     private static final String BEAN_NAME_TEMPLATE = "outbound.%s";
+
+    private static final MediaType AVRO_BINARY = MediaType.parseMediaType("avro/binary");
+
+    private static final String SCHEMA_VERSION_HEADER = "Schema-Version";
 
     private final HermesClient hermesClient;
 
@@ -107,32 +117,70 @@ public class HermesClientBinder
 
         @Override
         protected void handleMessageInternal(Message<?> message) throws Exception {
-            final MessageValues messageToSend = serializePayloadIfNecessary(message);
-            publish(messageToSend.toMessage(getMessageBuilderFactory()));
+            validate(message);
+            publish(
+                    buildHermesMessage(message)
+            );
         }
 
-        private void publish(Message<?> message) {
-            hermesClient.publish(topic, getContentType(message), getPayloadAsBytes(message))
-                    .whenComplete((resp, exc) -> {
-                        if (resp.isSuccess()) {
-                            logger.debug("Message published successfully to Hermes");
-                        } else {
-                            logError(resp);
-                        }
-                    });
-        }
-
-        private String getContentType(Message<?> message) {
-            Object contentType = message.getHeaders().get(MessageHeaders.CONTENT_TYPE);
-            if (contentType != null) {
-                return String.valueOf(contentType);
+        private void validate(Message<?> message) {
+            final Optional<String> contentType = getContentType(message);
+            if (!contentType.isPresent()) {
+                throw new IllegalStateException("Header 'contentType' is required to publish Hermes message");
             }
-            return null;
+        }
+
+        private HermesMessage buildHermesMessage(Message<?> message) {
+            final Optional<MediaType> contentType = getContentType(message)
+                    .map(MediaType::parseMediaType);
+
+            if (APPLICATION_JSON.isCompatibleWith(contentType.get())) {
+                return HermesMessage.hermesMessage(topic, getPayloadAsBytes(message))
+                        .json()
+                        .build();
+            } else if (AVRO_BINARY.isCompatibleWith(contentType.get())) {
+                return HermesMessage.hermesMessage(topic, getPayloadAsBytes(message))
+                        .avro(getSchemaVersion(message))
+                        .build();
+            }
+            throw new IllegalStateException("The provided content type is not supported");
+        }
+
+        private void publish(HermesMessage message) {
+            hermesClient.publish(message).whenComplete((resp, exc) -> {
+                if (resp.isSuccess()) {
+                    logger.debug("Message published successfully to Hermes");
+                } else {
+                    logError(resp);
+                }
+            });
+        }
+
+        private int getSchemaVersion(Message<?> message) {
+            final Optional<String> schemaVersion = getHeader(message, SCHEMA_VERSION_HEADER);
+            if (schemaVersion.isPresent()) {
+                return Integer.parseInt(schemaVersion.get());
+            }
+            throw new IllegalStateException("Header 'Schema-Version' is required for AVRO message");
+        }
+
+        private Optional<String> getContentType(Message<?> message) {
+            return getHeader(message, MessageHeaders.CONTENT_TYPE);
+        }
+
+        private Optional<String> getHeader(Message<?> message, String headerName) {
+            final Object contentType = message.getHeaders().get(headerName);
+            if (contentType != null) {
+                return Optional.of(String.valueOf(contentType));
+            }
+            return Optional.empty();
         }
 
         private byte[] getPayloadAsBytes(Message<?> message) {
             if (message.getPayload() instanceof byte[]) {
                 return (byte[]) message.getPayload();
+            } else if (message.getPayload() instanceof String) {
+                return ((String) message.getPayload()).getBytes(UTF_8);
             }
             return null;
         }

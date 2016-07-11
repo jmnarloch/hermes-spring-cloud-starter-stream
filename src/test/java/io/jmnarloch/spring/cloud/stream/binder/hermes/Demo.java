@@ -30,6 +30,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -44,7 +45,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
-import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.given;
@@ -64,6 +64,8 @@ public class Demo {
 
     private static final String PURCHASES_TOPIC_PATH = "/topics/pl.allegro.payment.purchases";
 
+    private static final String RETURNS_TOPIC_PATH = "/topics/pl.allegro.payment.returns";
+
     @Autowired
     private Events events;
 
@@ -73,9 +75,8 @@ public class Demo {
     @Before
     public void setUp() throws Exception {
 
-        wireMock.stubFor(post(urlPathMatching(PURCHASES_TOPIC_PATH))
-                .withHeader(HttpHeaders.CONTENT_TYPE, equalTo(MediaType.APPLICATION_JSON_VALUE))
-                .willReturn(aResponse().withStatus(201)));
+        stubTopicEndpoint(PURCHASES_TOPIC_PATH, MediaType.APPLICATION_JSON_VALUE);
+        stubTopicEndpoint(RETURNS_TOPIC_PATH, "avro/binary");
     }
 
     @Test
@@ -142,10 +143,42 @@ public class Demo {
         );
     }
 
+    @Test
+    public void shouldPublishAvroMessage() {
+
+        // given
+        final Message<byte[]> message = MessageBuilder
+                .withPayload(new byte[0])
+                .setHeader(MessageHeaders.CONTENT_TYPE, "avro/binary")
+                .setHeader("Schema-Version", 1)
+                .build();
+
+        // when
+        events.returns().send(message);
+
+        // then
+        given().ignoreExceptions().await().atMost(5, SECONDS).until(
+                () -> wireMock.verify(1,
+                        postRequestedFor(urlEqualTo(RETURNS_TOPIC_PATH))
+                                .withHeader("Content-Type", equalTo("avro/binary"))
+                                .withHeader("Schema-Version", equalTo("1"))
+                )
+        );
+    }
+
+    private void stubTopicEndpoint(String path, String contentType) {
+        wireMock.stubFor(post(urlPathMatching(path))
+                .withHeader(HttpHeaders.CONTENT_TYPE, equalTo(contentType))
+                .willReturn(aResponse().withStatus(201)));
+    }
+
     interface Events {
 
         @Output
         MessageChannel purchases();
+
+        @Output
+        MessageChannel returns();
     }
 
     public static class Purchase {

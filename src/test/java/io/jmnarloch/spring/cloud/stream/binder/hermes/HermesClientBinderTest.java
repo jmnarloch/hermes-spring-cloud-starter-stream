@@ -25,8 +25,10 @@ import org.mockito.junit.MockitoRule;
 import org.springframework.cloud.stream.binder.Binding;
 import org.springframework.cloud.stream.binder.ExtendedProducerProperties;
 import org.springframework.context.support.GenericApplicationContext;
+import org.springframework.http.MediaType;
 import org.springframework.integration.channel.DirectChannel;
 import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.support.GenericMessage;
 import pl.allegro.tech.hermes.client.HermesClientBuilder;
 import pl.allegro.tech.hermes.client.HermesMessage;
@@ -35,6 +37,8 @@ import pl.allegro.tech.hermes.client.HermesResponseBuilder;
 import pl.allegro.tech.hermes.client.HermesSender;
 
 import java.net.URI;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -89,7 +93,7 @@ public class HermesClientBinderTest {
                 OUTPUT_NAME, output, new ExtendedProducerProperties<>(new HermesProducerProperties()));
 
         // then
-        output.send(new GenericMessage<>(MESSAGE));
+        output.send(new GenericMessage<>(MESSAGE, json()));
         verify(hermesSender).send(any(URI.class), any(HermesMessage.class));
         binding.unbind();
     }
@@ -108,7 +112,7 @@ public class HermesClientBinderTest {
                 OUTPUT_NAME, output, new ExtendedProducerProperties<>(new HermesProducerProperties()));
 
         // then
-        output.send(new GenericMessage<>(MESSAGE));
+        output.send(new GenericMessage<>(MESSAGE, json()));
         verify(hermesSender).send(uriCaptor.capture(), messageCaptor.capture());
 
         assertEquals("http://localhost:8080/topics/topic", uriCaptor.getValue().toString());
@@ -136,8 +140,12 @@ public class HermesClientBinderTest {
                 OUTPUT_NAME, output, new ExtendedProducerProperties<>(new HermesProducerProperties()));
 
         // then
-        output.send(new GenericMessage<>(MESSAGE));
+        output.send(new GenericMessage<>(MESSAGE, json()));
         verify(hermesSender, times(4)).send(any(URI.class), any(HermesMessage.class));
         binding.unbind();
+    }
+
+    private static Map<String, Object> json() {
+        return Collections.singletonMap(MessageHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
     }
 }
